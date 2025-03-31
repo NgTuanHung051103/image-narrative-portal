@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,23 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
+// Define interface for component settings to fix type errors
+interface ComponentSettings {
+  backgroundColor: string;
+  textColor: string;
+  contentAlignment: string;
+  columns?: number;
+  showImages?: boolean;
+}
+
+// Define interface for component content to fix type errors
+interface ComponentContent {
+  title?: string;
+  mainContentId?: string;
+  contentIds?: string[];
+  featuredContentIds?: string[];
+}
+
 const Pages = () => {
   const [selectedPage, setSelectedPage] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -39,8 +57,10 @@ const Pages = () => {
       backgroundColor: '#FFFFFF',
       textColor: '#111827',
       contentAlignment: 'left',
-    },
-    content: {}
+      columns: 3,
+      showImages: true
+    } as ComponentSettings,
+    content: {} as ComponentContent
   });
 
   // Function to open dialog in add mode
@@ -84,6 +104,8 @@ const Pages = () => {
         backgroundColor: '#FFFFFF',
         textColor: '#111827',
         contentAlignment: 'left',
+        columns: 3,
+        showImages: true
       },
       content: {}
     });
@@ -219,7 +241,7 @@ const Pages = () => {
   // Function to handle component type change
   const handleComponentTypeChange = (type) => {
     const selectedType = componentTypes.find(t => t.id === type);
-    let defaultContent = {};
+    let defaultContent = {} as ComponentContent;
     
     // Set default content structure based on component type
     switch (type) {
@@ -243,7 +265,7 @@ const Pages = () => {
     }
     
     // Set default settings based on component type
-    let defaultSettings = {
+    let defaultSettings: ComponentSettings = {
       backgroundColor: '#FFFFFF',
       textColor: '#111827',
       contentAlignment: 'left',

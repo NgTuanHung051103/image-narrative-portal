@@ -2,423 +2,177 @@
 import React, { useState } from 'react';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
-import { categories, contents, languages, images } from '@/data/mockData';
+import { contents, categories } from '@/data/mockData';
 import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogFooter 
-} from '@/components/ui/dialog';
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import { 
+  PlusCircle, 
+  Search, 
+  Filter, 
+  Pencil, 
+  Trash2, 
+  Eye, 
+  ChevronsUpDown, 
+  ArrowUpDown,
+  Languages
+} from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Pencil, Trash2, Image, FileText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
+import { Card } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const Contents = () => {
-  const [selectedContent, setSelectedContent] = useState(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isImagePickerOpen, setIsImagePickerOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState('add'); // 'add' or 'edit'
-  const [formData, setFormData] = useState({
-    categoryId: '',
-    status: 'draft',
-    isActive: true,
-    languages: languages.map(lang => ({
-      languageId: lang.id,
-      title: '',
-      description: ''
-    })),
-    imageIds: [],
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+
+  // Filter contents based on search term and category filter
+  const filteredContents = contents.filter(content => {
+    const matchesSearch = content.languages.some(lang => 
+      lang.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lang.description.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    
+    const matchesCategory = filterCategory ? content.categoryId === filterCategory : true;
+    
+    return matchesSearch && matchesCategory;
   });
-
-  // Function to open dialog in add mode
-  const handleAddContent = () => {
-    setDialogMode('add');
-    setFormData({
-      categoryId: categories[0]?.id || '',
-      status: 'draft',
-      isActive: true,
-      languages: languages.map(lang => ({
-        languageId: lang.id,
-        title: '',
-        description: ''
-      })),
-      imageIds: [],
-    });
-    setIsDialogOpen(true);
-  };
-
-  // Function to open dialog in edit mode
-  const handleEditContent = (content) => {
-    setDialogMode('edit');
-    setSelectedContent(content);
-    setFormData({
-      categoryId: content.categoryId,
-      status: content.status,
-      isActive: content.isActive,
-      languages: languages.map(lang => {
-        const existingLang = content.languages.find(l => l.languageId === lang.id);
-        return {
-          languageId: lang.id,
-          title: existingLang?.title || '',
-          description: existingLang?.description || ''
-        };
-      }),
-      imageIds: content.imageIds || [content.imageId],
-    });
-    setIsDialogOpen(true);
-  };
-
-  // Function to handle form input changes
-  const handleInputChange = (languageId, field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      languages: prev.languages.map(lang => 
-        lang.languageId === languageId 
-          ? { ...lang, [field]: value } 
-          : lang
-      )
-    }));
-  };
-
-  // Function to handle field changes
-  const handleFieldChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  // Function to get the category name
+  
+  // Get category name by id
   const getCategoryName = (categoryId) => {
-    const category = categories.find(cat => cat.id === categoryId);
-    if (!category) return 'Unknown Category';
+    const category = categories.find(c => c.id === categoryId);
+    if (!category) return 'Uncategorized';
     
     const englishLang = category.languages.find(l => l.languageId === 'en');
-    return englishLang ? englishLang.name : category.languages[0]?.name || 'Unnamed Category';
+    return englishLang ? englishLang.name : category.languages[0]?.name || 'Unnamed';
   };
-
-  // Function to get the image for a content
-  const getContentImage = (imageId) => {
-    return images.find(img => img.id === imageId);
-  };
-
-  // Function to handle image selection
-  const handleImageSelect = (imageId) => {
-    setFormData(prev => {
-      // Check if the image is already selected
-      if (prev.imageIds.includes(imageId)) {
-        // Remove the image if it's already selected
-        return {
-          ...prev,
-          imageIds: prev.imageIds.filter(id => id !== imageId)
-        };
-      } else {
-        // Add the image to the selection
-        return {
-          ...prev,
-          imageIds: [...prev.imageIds, imageId]
-        };
-      }
-    });
-  };
-
-  // Function to close the image picker
-  const handleCloseImagePicker = () => {
-    setIsImagePickerOpen(false);
-  };
-
-  // Function to save content (add/edit)
-  const handleSaveContent = () => {
-    // Here you would normally make an API call
-    console.log('Saving content:', formData);
-    // Close the dialog after saving
-    setIsDialogOpen(false);
-  };
-
-  // Function to confirm deletion
-  const handleDeleteConfirm = () => {
-    // Here you would normally make an API call
-    console.log('Deleting content:', selectedContent);
-    // Close the dialogs after deleting
-    setIsDeleteDialogOpen(false);
+  
+  // Get status badge variant
+  const getStatusVariant = (status) => {
+    switch (status) {
+      case 'published':
+        return 'default';
+      case 'draft':
+        return 'outline';
+      case 'scheduled':
+        return 'secondary';
+      default:
+        return 'outline';
+    }
   };
 
   return (
     <Layout title="Contents">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Contents</h1>
-        <Button onClick={handleAddContent}>
-          <Plus className="h-4 w-4 mr-1" />
+        <div className="flex items-center space-x-2">
+          <h1 className="text-2xl font-bold">Contents</h1>
+          <Badge>{contents.length}</Badge>
+        </div>
+        <Button>
+          <PlusCircle className="h-4 w-4 mr-2" />
           <span>Add Content</span>
         </Button>
       </div>
 
-      <div className="bg-white rounded-lg shadow">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Title</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Active</TableHead>
-              <TableHead>Updated</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {contents.map(content => {
-              // Find the English title or fallback to the first available language
-              const englishLang = content.languages.find(l => l.languageId === 'en');
-              const displayTitle = englishLang ? englishLang.title : content.languages[0]?.title || 'Untitled';
+      <Card className="mb-6">
+        <div className="p-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search contents..."
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="w-full md:w-auto flex items-center gap-2">
+              <Button variant="outline" className="w-full md:w-auto">
+                <Filter className="h-4 w-4 mr-2" />
+                <span>Filter</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <ScrollArea className="rounded-md border h-[calc(100vh-250px)]">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Languages</TableHead>
+                <TableHead>Updated</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredContents.map(content => {
+                // Get English language version or first available
+                const englishLang = content.languages.find(lang => lang.languageId === 'en');
+                const displayLang = englishLang || content.languages[0];
+                
+                return (
+                  <TableRow key={content.id}>
+                    <TableCell className="font-medium">
+                      {displayLang?.title}
+                    </TableCell>
+                    <TableCell>
+                      {getCategoryName(content.categoryId)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{content.type}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusVariant(content.status)}>
+                        {content.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Languages className="h-4 w-4 mr-1" />
+                        <span>{content.languages.length}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{new Date(content.updatedAt).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
               
-              return (
-                <TableRow key={content.id}>
-                  <TableCell className="font-medium">
-                    {displayTitle}
-                  </TableCell>
-                  <TableCell>{getCategoryName(content.categoryId)}</TableCell>
-                  <TableCell>
-                    <Badge variant={content.status === 'published' ? 'default' : 'outline'}>
-                      {content.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={content.isActive ? 'success' : 'secondary'}>
-                      {content.isActive ? 'Yes' : 'No'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{new Date(content.updatedAt).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleEditContent(content)}
-                      >
-                        <Pencil className="h-4 w-4 mr-1" />
-                        <span>Edit</span>
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => {
-                          setSelectedContent(content);
-                          setIsDeleteDialogOpen(true);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        <span>Delete</span>
-                      </Button>
-                    </div>
+              {filteredContents.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-24 text-center">
+                    No results found.
                   </TableCell>
                 </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Add/Edit Content Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {dialogMode === 'add' ? 'Add New Content' : 'Edit Content'}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="category" className="text-right">
-                Category
-              </Label>
-              <Select 
-                value={formData.categoryId} 
-                onValueChange={(value) => handleFieldChange('categoryId', value)}
-              >
-                <SelectTrigger id="category" className="col-span-3">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map(category => {
-                    const englishLang = category.languages.find(l => l.languageId === 'en');
-                    const displayName = englishLang ? englishLang.name : category.languages[0]?.name || 'Unnamed Category';
-                    
-                    return (
-                      <SelectItem key={category.id} value={category.id}>
-                        {displayName}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="status" className="text-right">
-                Status
-              </Label>
-              <Select 
-                value={formData.status} 
-                onValueChange={(value) => handleFieldChange('status', value)}
-              >
-                <SelectTrigger id="status" className="col-span-3">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="published">Published</SelectItem>
-                  <SelectItem value="archived">Archived</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="active" className="text-right">
-                Active
-              </Label>
-              <div className="col-span-3 flex items-center space-x-2">
-                <Switch 
-                  id="active"
-                  checked={formData.isActive} 
-                  onCheckedChange={(value) => handleFieldChange('isActive', value)} 
-                />
-                <span>{formData.isActive ? 'Yes' : 'No'}</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label className="text-right pt-2">
-                Images
-              </Label>
-              <div className="col-span-3">
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {formData.imageIds.map(imageId => {
-                    const image = getContentImage(imageId);
-                    return image ? (
-                      <div key={imageId} className="relative group">
-                        <img 
-                          src={image.thumbnailUrl} 
-                          alt={image.filename} 
-                          className="h-16 w-16 rounded object-cover"
-                        />
-                        <button 
-                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => {
-                            setFormData(prev => ({
-                              ...prev,
-                              imageIds: prev.imageIds.filter(id => id !== imageId)
-                            }));
-                          }}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ) : null;
-                  })}
-                </div>
-                <Button variant="outline" size="sm" onClick={() => setIsImagePickerOpen(true)}>
-                  <Image className="h-4 w-4 mr-1" />
-                  <span>Select Images</span>
-                </Button>
-              </div>
-            </div>
-
-            <Tabs defaultValue={languages[0].id} className="w-full">
-              <TabsList className="grid grid-cols-2 md:grid-cols-4">
-                {languages.map(lang => (
-                  <TabsTrigger key={lang.id} value={lang.id}>{lang.name}</TabsTrigger>
-                ))}
-              </TabsList>
-              
-              {languages.map(lang => (
-                <TabsContent key={lang.id} value={lang.id}>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor={`title-${lang.id}`} className="text-right">
-                        Title
-                      </Label>
-                      <Input
-                        id={`title-${lang.id}`}
-                        value={formData.languages.find(l => l.languageId === lang.id)?.title || ''}
-                        onChange={(e) => handleInputChange(lang.id, 'title', e.target.value)}
-                        className="col-span-3"
-                      />
-                    </div>
-                    <div className="grid grid-cols-4 items-start gap-4">
-                      <Label htmlFor={`description-${lang.id}`} className="text-right pt-2">
-                        Description
-                      </Label>
-                      <Textarea
-                        id={`description-${lang.id}`}
-                        value={formData.languages.find(l => l.languageId === lang.id)?.description || ''}
-                        onChange={(e) => handleInputChange(lang.id, 'description', e.target.value)}
-                        className="col-span-3"
-                        rows={4}
-                      />
-                    </div>
-                  </div>
-                </TabsContent>
-              ))}
-            </Tabs>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveContent}>Save</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
-          </DialogHeader>
-          <p>Are you sure you want to delete this content? This action cannot be undone.</p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDeleteConfirm}>Delete</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Image Picker Dialog */}
-      <Dialog open={isImagePickerOpen} onOpenChange={setIsImagePickerOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
-          <DialogHeader>
-            <DialogTitle>Select Images</DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {images.map(image => (
-              <div 
-                key={image.id} 
-                className={`cursor-pointer border rounded-lg p-2 ${formData.imageIds.includes(image.id) ? 'ring-2 ring-violet-500' : ''}`}
-                onClick={() => handleImageSelect(image.id)}
-              >
-                <img 
-                  src={image.thumbnailUrl} 
-                  alt={image.filename} 
-                  className="w-full h-32 object-cover rounded mb-2"
-                />
-                <p className="text-sm truncate">{image.filename}</p>
-              </div>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCloseImagePicker}>Done</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              )}
+            </TableBody>
+          </Table>
+        </ScrollArea>
+      </Card>
     </Layout>
   );
 };

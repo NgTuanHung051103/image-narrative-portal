@@ -3,365 +3,272 @@ import React, { useState } from 'react';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { images } from '@/data/mockData';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter
-} from '@/components/ui/dialog';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  Grid2X2, 
+  List, 
+  Upload, 
+  Search, 
+  Filter,
+  Pencil,
+  Trash2,
+  Image as ImageIcon
+} from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Pencil, Trash2, Upload, Image as ImageIcon, FileType } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const Images = () => {
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState('view'); // 'view' or 'edit'
-  const [formData, setFormData] = useState({
-    filename: '',
-    name: '',
-  });
-  const [uploadFiles, setUploadFiles] = useState([]);
-  const [previewUrls, setPreviewUrls] = useState([]);
-
-  // Function to format file size
-  const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  // Function to open dialog in view/edit mode
-  const handleViewImage = (image) => {
-    setDialogMode('view');
-    setSelectedImage(image);
-    setFormData({
-      filename: image.filename,
-      name: image.name,
-    });
-    setIsDialogOpen(true);
-  };
-
-  // Function to edit image metadata
-  const handleEditImage = () => {
-    setDialogMode('edit');
-  };
-
-  // Function to handle form input changes
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  // Function to save image metadata
-  const handleSaveImage = () => {
-    // Here you would normally make an API call
-    console.log('Saving image metadata:', formData);
-    // Switch back to view mode
-    setDialogMode('view');
-  };
-
-  // Function to confirm deletion
-  const handleDeleteConfirm = () => {
-    // Here you would normally make an API call
-    console.log('Deleting image:', selectedImage);
-    // Close the dialogs after deleting
-    setIsDeleteDialogOpen(false);
-    setIsDialogOpen(false);
-  };
-
-  // Function to handle file selection for upload
-  const handleFileSelect = (e) => {
-    const files = Array.from(e.target.files);
-    setUploadFiles(files);
+  const [view, setView] = useState('grid');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [imageTitle, setImageTitle] = useState('');
+  
+  // Filter images based on search
+  const filteredImages = images.filter(img => 
+    img.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    img.alt.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  
+  // Handle file selection
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
     
-    // Create preview URLs
-    const urls = files.map(file => URL.createObjectURL(file));
-    setPreviewUrls(urls);
+    setSelectedFile(file);
+    setImageTitle(file.name.split('.')[0]);
+    
+    // Create preview URL
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviewUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
   };
-
-  // Function to upload images
+  
+  // Handle image upload
   const handleUpload = () => {
-    // Here you would normally make an API call to upload the files
-    console.log('Uploading files:', uploadFiles);
-    // Reset the form and close the dialog
-    setUploadFiles([]);
-    setPreviewUrls([]);
-    setIsUploadDialogOpen(false);
+    // Here you would normally handle the actual upload
+    console.log('Uploading:', selectedFile, 'with title:', imageTitle);
+    setUploadDialogOpen(false);
+    setSelectedFile(null);
+    setPreviewUrl('');
+    setImageTitle('');
   };
 
   return (
-    <Layout title="Images">
+    <Layout title="Media Library">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Images</h1>
-        <Button onClick={() => setIsUploadDialogOpen(true)}>
-          <Upload className="h-4 w-4 mr-1" />
-          <span>Upload Images</span>
+        <Button onClick={() => setUploadDialogOpen(true)}>
+          <Upload className="h-4 w-4 mr-2" />
+          <span>Upload Image</span>
         </Button>
       </div>
 
-      <div className="bg-white rounded-lg shadow">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Preview</TableHead>
-              <TableHead>Filename</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Size</TableHead>
-              <TableHead>Uploaded</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {images.map(image => (
-              <TableRow key={image.id}>
-                <TableCell>
-                  <div className="h-12 w-12 relative">
-                    <img 
-                      src={image.thumbnailUrl} 
-                      alt={image.filename} 
-                      className="h-full w-full object-cover rounded"
-                    />
-                  </div>
-                </TableCell>
-                <TableCell className="font-medium">
-                  {image.name || image.filename}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline">
-                    {image.mimeType}
-                  </Badge>
-                </TableCell>
-                <TableCell>{formatFileSize(image.size)}</TableCell>
-                <TableCell>{new Date(image.createdAt).toLocaleDateString()}</TableCell>
-                <TableCell>
-                  <div className="flex space-x-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleViewImage(image)}
-                    >
-                      <ImageIcon className="h-4 w-4 mr-1" />
-                      <span>View</span>
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => {
-                        setSelectedImage(image);
-                        setIsDeleteDialogOpen(true);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      <span>Delete</span>
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* View/Edit Image Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>
-              {dialogMode === 'view' ? 'Image Details' : 'Edit Image'}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex justify-center items-center">
-              {selectedImage && (
-                <img 
-                  src={selectedImage.path} 
-                  alt={selectedImage.filename} 
-                  className="max-h-[400px] max-w-full object-contain rounded"
-                />
-              )}
+      <Card className="mb-6">
+        <div className="p-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search images..."
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-            
-            <div className="space-y-4">
-              {dialogMode === 'view' ? (
-                <>
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Filename</h3>
-                    <p className="mt-1">{selectedImage?.filename}</p>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Display Name</h3>
-                    <p className="mt-1">{selectedImage?.name}</p>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Type</h3>
-                    <p className="mt-1">{selectedImage?.mimeType}</p>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Size</h3>
-                    <p className="mt-1">{formatFileSize(selectedImage?.size || 0)}</p>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Uploaded</h3>
-                    <p className="mt-1">{new Date(selectedImage?.createdAt || '').toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Last Updated</h3>
-                    <p className="mt-1">{new Date(selectedImage?.updatedAt || '').toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Path</h3>
-                    <p className="mt-1 break-all">{selectedImage?.path}</p>
-                  </div>
-                  <Button onClick={handleEditImage}>
-                    <Pencil className="h-4 w-4 mr-1" />
-                    <span>Edit Metadata</span>
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <div className="grid gap-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="filename" className="text-right">
-                        Filename
-                      </Label>
-                      <Input
-                        id="filename"
-                        value={formData.filename}
-                        onChange={(e) => handleInputChange('filename', e.target.value)}
-                        className="col-span-3"
-                      />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="name" className="text-right">
-                        Display Name
-                      </Label>
-                      <Input
-                        id="name"
-                        value={formData.name}
-                        onChange={(e) => handleInputChange('name', e.target.value)}
-                        className="col-span-3"
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
+            <div className="flex items-center gap-2">
+              <Button variant="outline">
+                <Filter className="h-4 w-4 mr-2" />
+                <span>Filter</span>
+              </Button>
+              <div className="flex bg-muted rounded-md">
+                <Button
+                  variant={view === 'grid' ? 'default' : 'ghost'}
+                  className="rounded-r-none rounded-l-md"
+                  onClick={() => setView('grid')}
+                >
+                  <Grid2X2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={view === 'list' ? 'default' : 'ghost'}
+                  className="rounded-l-none rounded-r-md"
+                  onClick={() => setView('list')}
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
+        </div>
+      </Card>
 
-          <DialogFooter>
-            {dialogMode === 'view' ? (
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Close</Button>
-            ) : (
-              <>
-                <Button variant="outline" onClick={() => setDialogMode('view')}>Cancel</Button>
-                <Button onClick={handleSaveImage}>Save</Button>
-              </>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
-          </DialogHeader>
-          <p>Are you sure you want to delete this image? This action cannot be undone.</p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDeleteConfirm}>Delete</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
+      <Card>
+        <CardContent className="p-4">
+          {view === 'grid' ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {filteredImages.map(img => (
+                <div key={img.id} className="group relative">
+                  <div className="aspect-square rounded-md overflow-hidden border bg-muted">
+                    <img
+                      src={img.url}
+                      alt={img.alt}
+                      className="h-full w-full object-cover transition-all hover:scale-105"
+                    />
+                  </div>
+                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex space-x-1">
+                      <Button variant="ghost" size="sm" className="text-white">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" className="text-white">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="mt-1 text-sm truncate">{img.title}</p>
+                </div>
+              ))}
+              
+              {filteredImages.length === 0 && (
+                <div className="col-span-full flex items-center justify-center h-32">
+                  <p className="text-muted-foreground">No images found.</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <ScrollArea className="h-[calc(100vh-300px)]">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left p-2">Image</th>
+                    <th className="text-left p-2">Title</th>
+                    <th className="text-left p-2">Alt Text</th>
+                    <th className="text-left p-2">Dimensions</th>
+                    <th className="text-left p-2">Size</th>
+                    <th className="text-left p-2">Date</th>
+                    <th className="text-left p-2">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredImages.map(img => (
+                    <tr key={img.id} className="border-b">
+                      <td className="p-2">
+                        <div className="h-10 w-10 rounded-md overflow-hidden bg-muted">
+                          <img
+                            src={img.url}
+                            alt={img.alt}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                      </td>
+                      <td className="p-2">{img.title}</td>
+                      <td className="p-2">{img.alt}</td>
+                      <td className="p-2">{img.dimensions}</td>
+                      <td className="p-2">{img.size}</td>
+                      <td className="p-2">{new Date(img.uploadedAt).toLocaleDateString()}</td>
+                      <td className="p-2">
+                        <div className="flex space-x-1">
+                          <Button variant="ghost" size="sm">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  
+                  {filteredImages.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="p-4 text-center">
+                        No images found.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </ScrollArea>
+          )}
+        </CardContent>
+      </Card>
+      
       {/* Upload Dialog */}
-      <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
-        <DialogContent className="max-w-2xl">
+      <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Upload Images</DialogTitle>
+            <DialogTitle>Upload Image</DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-4">
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-              <Input
-                id="file-upload"
-                type="file"
-                multiple
-                accept="image/*"
-                className="hidden"
-                onChange={handleFileSelect}
-              />
-              <Label htmlFor="file-upload" className="cursor-pointer">
-                <div className="flex flex-col items-center">
-                  <FileType className="h-12 w-12 text-gray-400 mb-2" />
-                  <span className="text-sm text-gray-500">
-                    Drag and drop files here, or click to select files
-                  </span>
+          <div className="space-y-4 py-4">
+            <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-md p-6 bg-muted">
+              {previewUrl ? (
+                <div className="relative w-full max-w-sm">
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    className="max-h-48 mx-auto object-contain"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-0 right-0 bg-black bg-opacity-50 text-white rounded-full p-1"
+                    onClick={() => {
+                      setSelectedFile(null);
+                      setPreviewUrl('');
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
-              </Label>
+              ) : (
+                <>
+                  <ImageIcon className="h-10 w-10 text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground mb-2">Drag and drop or click to upload</p>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="max-w-sm"
+                  />
+                </>
+              )}
             </div>
             
-            {previewUrls.length > 0 && (
-              <div className="mt-4">
-                <h3 className="text-sm font-medium mb-2">Selected Files ({previewUrls.length})</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {previewUrls.map((url, index) => (
-                    <div key={index} className="relative">
-                      <img 
-                        src={url} 
-                        alt={`Preview ${index + 1}`} 
-                        className="h-24 w-full object-cover rounded"
-                      />
-                      <button 
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"
-                        onClick={() => {
-                          const newFiles = [...uploadFiles];
-                          newFiles.splice(index, 1);
-                          setUploadFiles(newFiles);
-                          
-                          const newUrls = [...previewUrls];
-                          URL.revokeObjectURL(newUrls[index]);
-                          newUrls.splice(index, 1);
-                          setPreviewUrls(newUrls);
-                        }}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+            {previewUrl && (
+              <div className="grid gap-2">
+                <Label htmlFor="title">Title</Label>
+                <Input
+                  id="title"
+                  value={imageTitle}
+                  onChange={(e) => setImageTitle(e.target.value)}
+                  placeholder="Enter image title"
+                />
               </div>
             )}
           </div>
-
+          
           <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              // Revoke all object URLs to avoid memory leaks
-              previewUrls.forEach(url => URL.revokeObjectURL(url));
-              setPreviewUrls([]);
-              setUploadFiles([]);
-              setIsUploadDialogOpen(false);
-            }}>
-              Cancel
-            </Button>
-            <Button 
+            <Button variant="outline" onClick={() => setUploadDialogOpen(false)}>Cancel</Button>
+            <Button
               onClick={handleUpload}
-              disabled={uploadFiles.length === 0}
+              disabled={!selectedFile}
             >
-              <Upload className="h-4 w-4 mr-1" />
-              <span>Upload {uploadFiles.length > 0 ? `(${uploadFiles.length})` : ''}</span>
+              Upload
             </Button>
           </DialogFooter>
         </DialogContent>

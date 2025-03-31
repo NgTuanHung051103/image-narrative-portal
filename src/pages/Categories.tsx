@@ -1,346 +1,372 @@
 
 import React, { useState } from 'react';
 import Layout from '@/components/Layout';
-import { categories, Category, languages, Image, images } from '@/data/mockData';
-import { Plus, Search, Edit, Trash2, ChevronDown, ChevronRight, Globe, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
-
-interface TreeNodeProps {
-  category: Category;
-  categories: Category[];
-  level: number;
-  expanded: Record<string, boolean>;
-  selected: string | null;
-  onToggleExpand: (id: string) => void;
-  onSelect: (id: string) => void;
-}
-
-const TreeNode = ({ 
-  category, 
-  categories, 
-  level, 
-  expanded, 
-  selected, 
-  onToggleExpand, 
-  onSelect 
-}: TreeNodeProps) => {
-  const hasChildren = categories.some(c => c.parentId === category.id);
-  const isExpanded = expanded[category.id] || false;
-  const isSelected = selected === category.id;
-  const childCategories = categories.filter(c => c.parentId === category.id);
-  
-  // Get image if exists
-  const categoryImage = category.imageId ? images.find(img => img.id === category.imageId) : null;
-  
-  // Get name from English language (default)
-  const name = category.languages.find(l => l.languageId === 'en')?.name || 'Unnamed';
-
-  return (
-    <div>
-      <div 
-        className={cn(
-          "flex items-center py-2 px-3 hover:bg-gray-50 cursor-pointer transition-colors",
-          isSelected && "bg-violet-50"
-        )}
-        style={{ paddingLeft: `${level * 16 + 8}px` }}
-        onClick={() => onSelect(category.id)}
-      >
-        {hasChildren ? (
-          <button
-            className="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-gray-700"
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleExpand(category.id);
-            }}
-          >
-            {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-          </button>
-        ) : (
-          <div className="w-6"></div>
-        )}
-        
-        {categoryImage ? (
-          <div className="w-6 h-6 mr-2 rounded overflow-hidden">
-            <img 
-              src={categoryImage.thumbnailUrl} 
-              alt={name} 
-              className="w-full h-full object-cover"
-            />
-          </div>
-        ) : (
-          <div className="w-6 h-6 mr-2 bg-gray-200 rounded flex items-center justify-center">
-            <span className="text-xs text-gray-500">{name.charAt(0)}</span>
-          </div>
-        )}
-        
-        <span className="flex-1 truncate">{name}</span>
-        
-        {category.languages.length > 1 && (
-          <div className="flex items-center text-gray-400 ml-2">
-            <Globe size={14} />
-            <span className="ml-1 text-xs">{category.languages.length}</span>
-          </div>
-        )}
-      </div>
-      
-      {isExpanded && hasChildren && (
-        <div>
-          {childCategories.map(child => (
-            <TreeNode
-              key={child.id}
-              category={child}
-              categories={categories}
-              level={level + 1}
-              expanded={expanded}
-              selected={selected}
-              onToggleExpand={onToggleExpand}
-              onSelect={onSelect}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const CategoryForm = ({ category, onClose }: { category: Category | null, onClose: () => void }) => {
-  const [activeTab, setActiveTab] = useState(languages[0].id);
-  
-  return (
-    <div className="bg-white shadow-lg rounded-lg overflow-hidden border border-gray-200">
-      <div className="flex justify-between items-center p-4 border-b border-gray-200 bg-gray-50">
-        <h3 className="font-semibold text-gray-800">
-          {category ? 'Edit Category' : 'Add New Category'}
-        </h3>
-        <button 
-          className="text-gray-500 hover:text-gray-700"
-          onClick={onClose}
-        >
-          <X size={20} />
-        </button>
-      </div>
-      
-      <div className="p-4">
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Slug
-          </label>
-          <input
-            type="text"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-violet-500 focus:border-violet-500"
-            placeholder="category-slug"
-            defaultValue={category?.slug || ''}
-          />
-        </div>
-        
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Parent Category
-          </label>
-          <select
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-violet-500 focus:border-violet-500"
-            defaultValue={category?.parentId || ''}
-          >
-            <option value="">None (Top Level)</option>
-            {categories.map(cat => (
-              <option key={cat.id} value={cat.id}>
-                {cat.languages.find(l => l.languageId === 'en')?.name || 'Unnamed'}
-              </option>
-            ))}
-          </select>
-        </div>
-        
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Featured Image
-          </label>
-          <div className="flex items-center">
-            {category?.imageId ? (
-              <div className="relative w-24 h-24 border border-gray-200 rounded-md overflow-hidden group">
-                <img 
-                  src={images.find(img => img.id === category.imageId)?.thumbnailUrl || ''} 
-                  alt="Category" 
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <button className="text-white text-sm">Change</button>
-                </div>
-              </div>
-            ) : (
-              <button className="w-24 h-24 border border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center text-gray-500 hover:text-violet-600 hover:border-violet-500">
-                <Plus size={20} />
-                <span className="text-xs mt-1">Select Image</span>
-              </button>
-            )}
-          </div>
-        </div>
-        
-        <div className="mb-4">
-          <div className="flex border-b border-gray-200">
-            {languages.map(lang => (
-              <button
-                key={lang.id}
-                className={cn(
-                  "px-4 py-2 text-sm font-medium",
-                  activeTab === lang.id 
-                    ? "text-violet-700 border-b-2 border-violet-700" 
-                    : "text-gray-500 hover:text-gray-700"
-                )}
-                onClick={() => setActiveTab(lang.id)}
-              >
-                {lang.name} {lang.isDefault && '(Default)'}
-              </button>
-            ))}
-          </div>
-          
-          <div className="pt-4">
-            {languages.map(lang => (
-              <div key={lang.id} className={activeTab === lang.id ? 'block' : 'hidden'}>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name ({lang.name})
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-violet-500 focus:border-violet-500"
-                    placeholder={`Category name in ${lang.name}`}
-                    defaultValue={category?.languages.find(l => l.languageId === lang.id)?.name || ''}
-                  />
-                </div>
-                
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description ({lang.name})
-                  </label>
-                  <textarea
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-violet-500 focus:border-violet-500"
-                    rows={3}
-                    placeholder={`Category description in ${lang.name}`}
-                    defaultValue={category?.languages.find(l => l.languageId === lang.id)?.description || ''}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        
-        <div className="flex justify-end space-x-3 mt-6">
-          <button
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200"
-            onClick={onClose}
-          >
-            Cancel
-          </button>
-          <button
-            className="px-4 py-2 text-sm font-medium text-white bg-violet-600 rounded-md hover:bg-violet-700"
-          >
-            {category ? 'Update Category' : 'Create Category'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
+import { Button } from '@/components/ui/button';
+import { categories, languages, images } from '@/data/mockData';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogFooter 
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { FolderTree, Plus, Pencil, Trash2, Image } from 'lucide-react';
 
 const Categories = () => {
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [selected, setSelected] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showForm, setShowForm] = useState(false);
-  
-  const rootCategories = categories.filter(c => c.parentId === null);
-  
-  const handleToggleExpand = (id: string) => {
-    setExpanded(prev => ({
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isImagePickerOpen, setIsImagePickerOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState('add'); // 'add' or 'edit'
+  const [selectedParent, setSelectedParent] = useState(null);
+  const [formData, setFormData] = useState({
+    status: 'active',
+    languages: languages.map(lang => ({
+      languageId: lang.id,
+      name: '',
+      description: ''
+    })),
+    imageId: '',
+  });
+
+  // Function to open dialog in add mode
+  const handleAddCategory = (parentId = null) => {
+    setDialogMode('add');
+    setSelectedParent(parentId);
+    setFormData({
+      status: 'active',
+      languages: languages.map(lang => ({
+        languageId: lang.id,
+        name: '',
+        description: ''
+      })),
+      imageId: '',
+    });
+    setIsDialogOpen(true);
+  };
+
+  // Function to open dialog in edit mode
+  const handleEditCategory = (category) => {
+    setDialogMode('edit');
+    setSelectedCategory(category);
+    setFormData({
+      status: category.status,
+      languages: languages.map(lang => {
+        const existingLang = category.languages.find(l => l.languageId === lang.id);
+        return {
+          languageId: lang.id,
+          name: existingLang?.name || '',
+          description: existingLang?.description || ''
+        };
+      }),
+      imageId: category.imageId,
+    });
+    setIsDialogOpen(true);
+  };
+
+  // Function to handle form input changes
+  const handleInputChange = (languageId, field, value) => {
+    setFormData(prev => ({
       ...prev,
-      [id]: !prev[id]
+      languages: prev.languages.map(lang => 
+        lang.languageId === languageId 
+          ? { ...lang, [field]: value } 
+          : lang
+      )
     }));
   };
-  
-  const handleSelect = (id: string) => {
-    setSelected(id);
-    setShowForm(true);
+
+  // Function to handle status change
+  const handleStatusChange = (value) => {
+    setFormData(prev => ({
+      ...prev,
+      status: value
+    }));
   };
-  
-  const handleAddNew = () => {
-    setSelected(null);
-    setShowForm(true);
+
+  // Function to get the image for a category
+  const getCategoryImage = (imageId) => {
+    return images.find(img => img.id === imageId);
   };
-  
-  const selectedCategory = selected ? categories.find(c => c.id === selected) || null : null;
-  
+
+  // Function to handle image selection
+  const handleImageSelect = (imageId) => {
+    setFormData(prev => ({
+      ...prev,
+      imageId
+    }));
+    setIsImagePickerOpen(false);
+  };
+
+  // Function to save category (add/edit)
+  const handleSaveCategory = () => {
+    // Here you would normally make an API call
+    console.log('Saving category:', formData);
+    // Close the dialog after saving
+    setIsDialogOpen(false);
+  };
+
+  // Function to confirm deletion
+  const handleDeleteConfirm = () => {
+    // Here you would normally make an API call
+    console.log('Deleting category:', selectedCategory);
+    // Close the dialogs after deleting
+    setIsDeleteDialogOpen(false);
+  };
+
+  // Build a hierarchical tree from flat categories array
+  const buildCategoryTree = (categories, parentId = null) => {
+    return categories
+      .filter(category => category.parentId === parentId)
+      .map(category => ({
+        ...category,
+        children: buildCategoryTree(categories, category.id)
+      }));
+  };
+
+  const categoryTree = buildCategoryTree(categories);
+
+  // Render a category row with its children indented
+  const renderCategoryRows = (categories, level = 0) => {
+    return categories.flatMap(category => {
+      // Find the English name or fallback to the first available language
+      const englishLang = category.languages.find(l => l.languageId === 'en');
+      const displayName = englishLang ? englishLang.name : category.languages[0]?.name || 'Unnamed Category';
+      
+      // Get the category image
+      const categoryImage = getCategoryImage(category.imageId);
+      
+      return [
+        <TableRow key={category.id}>
+          <TableCell className="font-medium">
+            <div className="flex items-center">
+              <span style={{ marginLeft: `${level * 20}px` }} className="flex items-center">
+                {category.children && category.children.length > 0 && <FolderTree className="mr-2 h-4 w-4" />}
+                {displayName}
+              </span>
+            </div>
+          </TableCell>
+          <TableCell>
+            {categoryImage && (
+              <div className="flex items-center space-x-2">
+                <img 
+                  src={categoryImage.thumbnailUrl} 
+                  alt={categoryImage.filename} 
+                  className="h-8 w-8 rounded object-cover"
+                />
+                <span className="text-sm text-gray-500">{categoryImage.filename}</span>
+              </div>
+            )}
+          </TableCell>
+          <TableCell>{category.status}</TableCell>
+          <TableCell>{new Date(category.updatedAt).toLocaleDateString()}</TableCell>
+          <TableCell>
+            <div className="flex space-x-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => handleAddCategory(category.id)}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                <span>Add</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => handleEditCategory(category)}
+              >
+                <Pencil className="h-4 w-4 mr-1" />
+                <span>Edit</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  setSelectedCategory(category);
+                  setIsDeleteDialogOpen(true);
+                }}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                <span>Delete</span>
+              </Button>
+            </div>
+          </TableCell>
+        </TableRow>,
+        ...(category.children ? renderCategoryRows(category.children, level + 1) : [])
+      ];
+    });
+  };
+
   return (
     <Layout title="Categories">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-              <h3 className="font-medium text-gray-800">Category Tree</h3>
-              <button
-                className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-violet-600 rounded-md hover:bg-violet-700"
-                onClick={handleAddNew}
-              >
-                <Plus size={16} className="mr-1" />
-                <span>Add New</span>
-              </button>
-            </div>
-            
-            <div className="p-3 border-b border-gray-200">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search categories..."
-                  className="w-full rounded-md border border-gray-200 bg-gray-50 py-2 pl-8 pr-4 text-sm text-gray-900 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            </div>
-            
-            <div className="tree-table max-h-96 overflow-y-auto custom-scrollbar">
-              {rootCategories.map(category => (
-                <TreeNode
-                  key={category.id}
-                  category={category}
-                  categories={categories}
-                  level={0}
-                  expanded={expanded}
-                  selected={selected}
-                  onToggleExpand={handleToggleExpand}
-                  onSelect={handleSelect}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-        
-        <div className="lg:col-span-2">
-          {showForm ? (
-            <CategoryForm 
-              category={selectedCategory} 
-              onClose={() => setShowForm(false)} 
-            />
-          ) : (
-            <div className="bg-gray-100 border border-gray-200 border-dashed rounded-lg p-8 text-center">
-              <div className="mx-auto w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-4">
-                <FolderTree size={24} className="text-gray-500" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No Category Selected</h3>
-              <p className="text-gray-600 mb-4">
-                Select a category from the tree to edit its details or create a new one.
-              </p>
-              <button
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-violet-600 rounded-md hover:bg-violet-700"
-                onClick={handleAddNew}
-              >
-                <Plus size={16} className="mr-2" />
-                <span>Add New Category</span>
-              </button>
-            </div>
-          )}
-        </div>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Categories</h1>
+        <Button onClick={() => handleAddCategory()}>
+          <Plus className="h-4 w-4 mr-1" />
+          <span>Add Category</span>
+        </Button>
       </div>
+
+      <div className="bg-white rounded-lg shadow">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Image</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Updated</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {renderCategoryRows(categoryTree)}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Add/Edit Category Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {dialogMode === 'add' ? 'Add New Category' : 'Edit Category'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="status" className="text-right">
+                Status
+              </Label>
+              <Select 
+                value={formData.status} 
+                onValueChange={handleStatusChange}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">
+                Image
+              </Label>
+              <div className="col-span-3 flex items-center space-x-2">
+                {formData.imageId && (
+                  <div className="flex items-center space-x-2">
+                    <img 
+                      src={getCategoryImage(formData.imageId)?.thumbnailUrl} 
+                      alt="Category" 
+                      className="h-10 w-10 rounded object-cover"
+                    />
+                    <span className="text-sm text-gray-500">{getCategoryImage(formData.imageId)?.filename}</span>
+                  </div>
+                )}
+                <Button variant="outline" size="sm" onClick={() => setIsImagePickerOpen(true)}>
+                  <Image className="h-4 w-4 mr-1" />
+                  <span>{formData.imageId ? 'Change' : 'Select'} Image</span>
+                </Button>
+              </div>
+            </div>
+
+            <Tabs defaultValue={languages[0].id} className="w-full">
+              <TabsList className="grid grid-cols-2 md:grid-cols-4">
+                {languages.map(lang => (
+                  <TabsTrigger key={lang.id} value={lang.id}>{lang.name}</TabsTrigger>
+                ))}
+              </TabsList>
+              
+              {languages.map(lang => (
+                <TabsContent key={lang.id} value={lang.id}>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor={`name-${lang.id}`} className="text-right">
+                        Name
+                      </Label>
+                      <Input
+                        id={`name-${lang.id}`}
+                        value={formData.languages.find(l => l.languageId === lang.id)?.name || ''}
+                        onChange={(e) => handleInputChange(lang.id, 'name', e.target.value)}
+                        className="col-span-3"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-start gap-4">
+                      <Label htmlFor={`description-${lang.id}`} className="text-right pt-2">
+                        Description
+                      </Label>
+                      <Textarea
+                        id={`description-${lang.id}`}
+                        value={formData.languages.find(l => l.languageId === lang.id)?.description || ''}
+                        onChange={(e) => handleInputChange(lang.id, 'description', e.target.value)}
+                        className="col-span-3"
+                        rows={4}
+                      />
+                    </div>
+                  </div>
+                </TabsContent>
+              ))}
+            </Tabs>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveCategory}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+          </DialogHeader>
+          <p>Are you sure you want to delete this category? This action cannot be undone.</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Image Picker Dialog */}
+      <Dialog open={isImagePickerOpen} onOpenChange={setIsImagePickerOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Select Image</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {images.map(image => (
+              <div 
+                key={image.id} 
+                className={`cursor-pointer border rounded-lg p-2 ${formData.imageId === image.id ? 'ring-2 ring-violet-500' : ''}`}
+                onClick={() => handleImageSelect(image.id)}
+              >
+                <img 
+                  src={image.thumbnailUrl} 
+                  alt={image.filename} 
+                  className="w-full h-32 object-cover rounded mb-2"
+                />
+                <p className="text-sm truncate">{image.filename}</p>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsImagePickerOpen(false)}>Cancel</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };

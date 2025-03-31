@@ -12,6 +12,7 @@ import Categories from "./pages/Categories";
 import Contents from "./pages/Contents";
 import Images from "./pages/Images";
 import Pages from "./pages/Pages";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/contents" element={<Contents />} />
             <Route path="/images" element={<Images />} />
             <Route path="/pages" element={<Pages />} />
+            <Route path="/settings" element={<Settings />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
